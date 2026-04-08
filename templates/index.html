@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SentimentScope — Business Review Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <!-- ── HEADER ─────────────────────────────────────────────── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-mark">◈</span>
+        <span class="logo-text">SentimentScope</span>
+      </div>
+      <nav class="header-nav">
+        <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-btn" data-tab="reviews">Reviews</button>
+        <button class="nav-btn" data-tab="submit">Add Review</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── MAIN ───────────────────────────────────────────────── -->
+  <main class="main-content">
+
+    <!-- ── CONTROLS BAR ────────────────────────────────────── -->
+    <section class="controls-bar">
+      <div class="controls-inner">
+        <div class="control-group">
+          <label for="businessSelect">Business</label>
+          <div class="select-wrap">
+            <select id="businessSelect">
+              <option value="">All Businesses</option>
+              {% for b in businesses %}
+              <option value="{{ b }}">{{ b }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="control-group">
+          <label for="daysSelect">Time Range</label>
+          <div class="select-wrap">
+            <select id="daysSelect">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+              <option value="365">Last year</option>
+            </select>
+          </div>
+        </div>
+        <button id="loadDemoBtn" class="btn-demo">⚡ Load Demo Data</button>
+        <button id="refreshBtn" class="btn-refresh">↻ Refresh</button>
+      </div>
+    </section>
+
+    <!-- ── TAB: DASHBOARD ──────────────────────────────────── -->
+    <div id="tab-dashboard" class="tab-panel active">
+
+      <!-- KPI Cards -->
+      <section class="kpi-grid">
+        <div class="kpi-card" id="kpi-total">
+          <div class="kpi-label">Total Reviews</div>
+          <div class="kpi-value" id="kpiTotal">—</div>
+        </div>
+        <div class="kpi-card positive" id="kpi-positive">
+          <div class="kpi-label">Positive</div>
+          <div class="kpi-value" id="kpiPositive">—</div>
+        </div>
+        <div class="kpi-card neutral" id="kpi-neutral">
+          <div class="kpi-label">Neutral</div>
+          <div class="kpi-value" id="kpiNeutral">—</div>
+        </div>
+        <div class="kpi-card negative" id="kpi-negative">
+          <div class="kpi-label">Negative</div>
+          <div class="kpi-value" id="kpiNegative">—</div>
+        </div>
+        <div class="kpi-card score" id="kpi-score">
+          <div class="kpi-label">Avg Sentiment Score</div>
+          <div class="kpi-value" id="kpiScore">—</div>
+          <div class="kpi-sub" id="kpiScoreLabel"></div>
+        </div>
+        <div class="kpi-card rating" id="kpi-rating">
+          <div class="kpi-label">Avg Star Rating</div>
+          <div class="kpi-value" id="kpiRating">—</div>
+          <div class="kpi-sub" id="kpiStars"></div>
+        </div>
+      </section>
+
+      <!-- Charts Row 1 -->
+      <section class="charts-row">
+        <div class="chart-card wide">
+          <div class="chart-header">
+            <h3>Sentiment Trend</h3>
+            <div class="chart-legend" id="trendLegend"></div>
+          </div>
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><h3>Sentiment Breakdown</h3></div>
+          <canvas id="donutChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Charts Row 2 -->
+      <section class="charts-row">
+        <div class="chart-card">
+          <div class="chart-header"><h3>Top Keywords — Positive</h3></div>
+          <canvas id="posKeyChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><h3>Top Keywords — Negative</h3></div>
+          <canvas id="negKeyChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><h3>Score Distribution</h3></div>
+          <canvas id="scoreDistChart"></canvas>
+        </div>
+      </section>
+
+      <!-- Recent Reviews -->
+      <section class="recent-section">
+        <h3>Recent Reviews</h3>
+        <div id="recentReviews" class="reviews-list"></div>
+      </section>
+    </div>
+
+    <!-- ── TAB: ALL REVIEWS ─────────────────────────────────── -->
+    <div id="tab-reviews" class="tab-panel">
+      <div class="reviews-controls">
+        <input id="reviewSearch" type="text" placeholder="Search reviews…" class="search-input" />
+        <div class="filter-pills">
+          <button class="pill active" data-filter="all">All</button>
+          <button class="pill" data-filter="positive">Positive</button>
+          <button class="pill" data-filter="neutral">Neutral</button>
+          <button class="pill" data-filter="negative">Negative</button>
+        </div>
+      </div>
+      <div id="allReviews" class="reviews-list"></div>
+    </div>
+
+    <!-- ── TAB: SUBMIT ──────────────────────────────────────── -->
+    <div id="tab-submit" class="tab-panel">
+      <div class="submit-wrap">
+        <div class="submit-card">
+          <h2>Add a Review</h2>
+          <p class="submit-sub">Submit a review and see instant sentiment analysis</p>
+
+          <div class="form-group">
+            <label>Business Name *</label>
+            <input id="fBusiness" type="text" placeholder="e.g. Cafe Mornings" />
+          </div>
+          <div class="form-group">
+            <label>Your Name</label>
+            <input id="fName" type="text" placeholder="Anonymous" />
+          </div>
+          <div class="form-group">
+            <label>Star Rating</label>
+            <div class="star-rating" id="starRating">
+              <span class="star" data-val="1">★</span>
+              <span class="star" data-val="2">★</span>
+              <span class="star" data-val="3">★</span>
+              <span class="star" data-val="4">★</span>
+              <span class="star" data-val="5">★</span>
+            </div>
+            <input type="hidden" id="fRating" value="" />
+          </div>
+          <div class="form-group">
+            <label>Review *</label>
+            <textarea id="fReview" rows="5" placeholder="Write your review here…"></textarea>
+          </div>
+          <button id="submitReviewBtn" class="btn-submit">Analyse & Submit</button>
+          <div id="submitResult" class="submit-result hidden"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="spinner"></div>
+    <p>Analysing…</p>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
